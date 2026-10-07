@@ -29,9 +29,9 @@ class OrderUINode(Node):
 def print_main_menu():
     print('\n' + '=' * 45)
     print('       [식당 자율주행 서빙 주문 콘솔]       ')
-    print('1. 전체 배달 (1 -> 2 -> 3 -> 4)')
-    print('2. 단일 이동 (특정 목적지 0~4 지정, 복귀 X)')
-    print('3. 다수 선택 배달 (쉼표 구분 예: 4,2,0)')
+    print('1. 전체 순회 배달 (1 -> 2 -> 3 -> 4 -> 5 -> 6)')
+    print('2. 단일 이동 (0~6 지정, 도착 후 10초 주문 없으면 주방 복귀)')
+    print('3. 다수 선택 배달 (쉼표 구분 예: 6,4,2,0)')
     print('s. [긴급 정지] 주행 즉시 중단 및 정지')
     print('q. 프로그램 종료')
     print('=' * 45)
@@ -45,8 +45,8 @@ def main(args=None):
     spin_thread = threading.Thread(target=rclpy.spin, args=(ui_node,), daemon=True)
     spin_thread.start()
 
-    # [수정] 0번(주방) 입력 허용
-    VALID_TABLES = {'0', '1', '2', '3', '4'}
+    # [수정] 0번 주방 및 5, 6번 테이블까지 유효성 검사 목록 확장
+    VALID_TABLES = {'0', '1', '2', '3', '4', '5', '6'}
 
     try:
         while rclpy.ok():
@@ -58,14 +58,14 @@ def main(args=None):
                 ui_node.send_stop()
                 continue
 
-            # 1. 전체 배달
+            # 1. 전체 배달 (1번부터 6번까지 순차 배달 후 복귀)
             elif user_choice == '1':
-                ui_node.send_order('1,2,3,4')
+                ui_node.send_order('1,2,3,4,5,6')
 
             # 2. 단일 이동 (잘못 입력 시 재입력 루프)
             elif user_choice == '2':
                 while rclpy.ok():
-                    target = input('이동할 목적지 번호 (0~4, 취소: c, 정지: s): ').strip()
+                    target = input('이동할 목적지 번호 (0~6, 취소: c, 정지: s): ').strip()
                     if target.lower() == 's':
                         ui_node.send_stop()
                         break
@@ -76,12 +76,12 @@ def main(args=None):
                         ui_node.send_order(target)
                         break
                     else:
-                        print('[입력 오류] 0, 1, 2, 3, 4 중 하나만 입력해주세요.')
+                        print('[입력 오류] 0, 1, 2, 3, 4, 5, 6 중 하나만 입력해주세요.')
 
             # 3. 다수 선택 배달 (잘못 입력 시 재입력 루프)
             elif user_choice == '3':
                 while rclpy.ok():
-                    raw = input('배달 순서 입력 (예: 4,2,0 / 취소: c, 정지: s): ').strip()
+                    raw = input('배달 순서 입력 (예: 6,4,2,0 / 취소: c, 정지: s): ').strip()
                     if raw.lower() == 's':
                         ui_node.send_stop()
                         break
@@ -94,7 +94,7 @@ def main(args=None):
                         ui_node.send_order(','.join(targets))
                         break
                     else:
-                        print('[입력 오류] 0~4 숫자를 쉼표(,)로 올바르게 구분해 입력하세요.')
+                        print('[입력 오류] 0~6 숫자를 쉼표(,)로 올바르게 구분해 입력하세요.')
 
             # 프로그램 종료
             elif user_choice.lower() == 'q':
@@ -107,7 +107,7 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
-        # [수정] 통신 먼저 닫고 노드 파괴 (에러 출력 방지)
+        # 통신 먼저 안전하게 닫고 노드 메모리 해제
         if rclpy.ok():
             rclpy.shutdown()
         ui_node.destroy_node()
