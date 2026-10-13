@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1C2440">
+<title>서빙봇 주문</title>
+<style>
+:root{
+  color-scheme:light;
+  --navy:#1C2440; --cream:#FBF3E4; --card:#FFFFFF; --ink:#1C2440; --muted:#6A7088; --line:#E8DCC6;
+  --orange:#E8973A; --orange-d:#C9741C; --orange-bg:#FDEBD2;
+  --green:#2E8B62; --green-d:#22694A; --green-bg:#DDF1E6;
+  --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;word-break:keep-all;
+  padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
+button{font-family:inherit;color:inherit}
+
+.top{background:var(--navy);color:#fff;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 46px;
+  background-image:radial-gradient(circle at 12px 12px,rgba(255,255,255,.07) 2px,transparent 2.5px);background-size:24px 24px}
+.top-in{max-width:560px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;flex-direction:column;line-height:1.2}
+.brand small{font-size:.72rem;letter-spacing:.14em;color:#F3C98B;font-weight:700}
+.brand b{font-size:1.35rem;font-weight:800}
+.tbtn{border:0;border-radius:999px;background:var(--orange);color:#fff;font-size:.92rem;font-weight:800;min-height:40px;padding:0 14px;cursor:pointer;white-space:nowrap}
+.tbtn[hidden]{display:none}
+
+.wrap{max-width:560px;margin:-32px auto 0;padding:0 16px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 2px 0 rgba(28,36,64,.05)}
+[hidden]{display:none!important}
+
+/* 테이블 고르기 */
+.ask{padding:20px 16px 18px;text-align:center}
+.ask img{width:120px;height:120px}
+.ask h1{margin:4px 0 2px;font-size:1.35rem;font-weight:800}
+.ask p{margin:0 0 14px;color:var(--muted);font-size:.92rem}
+.tgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.tgrid button{aspect-ratio:1;border-radius:14px;border:2px solid var(--navy);background:#fff;font-size:1.5rem;font-weight:800;cursor:pointer}
+.tgrid button:active{background:var(--orange-bg)}
+
+/* 내 주문 */
+.mine{display:flex;flex-direction:column}
+.od{padding:14px 16px;border-top:1px solid var(--line)}
+.od:first-child{border-top:0}
+.odh{display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:center}
+.odh img{width:84px;height:84px;object-fit:contain}
+.od.moving .odh img{animation:bob .7s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-5px)}}
+.tag{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.06em;padding:2px 9px;border-radius:999px;background:var(--line);margin-bottom:4px}
+.od.moving .tag{background:var(--orange-bg);color:var(--orange-d)}
+.od.arrived .tag{background:var(--green-bg);color:var(--green)}
+.od h2{margin:0;font-size:1.15rem;font-weight:800;line-height:1.3;text-wrap:balance}
+.od .what{margin:2px 0 0;font-size:.88rem;color:var(--muted)}
+.dots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.dots span{font-size:.72rem;font-weight:700;color:#B4AE9F;text-align:center;border-top:5px solid #EFE7D6;padding-top:5px;border-radius:2px}
+.dots span.on{color:var(--ink);border-color:var(--orange)}
+.od.arrived .dots span.on{border-color:var(--green)}
+.got{margin-top:12px;width:100%;min-height:54px;border:0;border-radius:14px;background:var(--green);color:#fff;font-size:1.1rem;font-weight:800;cursor:pointer;box-shadow:0 4px 0 var(--green-d)}
+.got:active{transform:translateY(3px);box-shadow:0 1px 0 var(--green-d)}
+.old{padding:9px 16px;border-top:1px solid var(--line);font-size:.86rem;color:var(--muted)}
+
+/* 메뉴 */
+.mh{padding:2px 4px 0;font-size:1.05rem;font-weight:800}
+#mine[hidden]+.mh{color:#fff}   /* 내 주문이 없을 때는 「메뉴」 글자가 남색 머리 위에 놓임 → 흰 글자로 (전에는 안 보였음) */
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.it{padding:10px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.it img{width:100%;max-width:130px;aspect-ratio:1;object-fit:contain}
+.it b{font-size:1rem;font-weight:800}
+.it span{font-size:.88rem;color:var(--muted)}
+.qty{margin-top:8px;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;width:100%;border:2px solid var(--navy);border-radius:12px;overflow:hidden}
+.qty button{height:44px;border:0;background:#fff;font-size:1.4rem;font-weight:800;cursor:pointer}
+.qty button:active{background:var(--orange-bg)}
+.qty button:disabled{color:#CFC8B8;cursor:default}
+.qty i{font-style:normal;font-weight:800;font-size:1.05rem}
+.it.in{border-color:var(--orange);box-shadow:0 0 0 2px var(--orange)}
+.it.in .qty{border-color:var(--orange-d)}
+.foot{font-size:.74rem;color:var(--muted);text-align:center}
+
+/* 주문하기 (아래 고정) */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:10;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(to top,var(--cream) 70%,rgba(251,243,228,0))}
+.pay{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;max-width:528px;margin:0 auto;min-height:62px;padding:0 20px;border:0;border-radius:16px;
+  background:var(--orange);color:#fff;font-size:1.15rem;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--orange-d)}
+.pay:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--orange-d)}
+.pay:disabled{background:#E9E2D3;color:#A39C8C;box-shadow:0 5px 0 #D8D0BE;cursor:default}
+.pay small{font-size:.9rem;font-weight:700;opacity:.95}
+.toast{position:fixed;left:50%;bottom:calc(98px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:20;max-width:calc(100vw - 32px);
+  background:var(--navy);color:#fff;font-size:.9rem;font-weight:700;padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)} .toast.bad{background:#C8402F}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><small>SERVING BOT · 주문</small><b>식당 서빙봇</b></div>
+    <button class="tbtn" id="tbtn" type="button" hidden></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 테이블 번호 고르기 -->
+  <section class="card ask" id="ask">
+    <img src="/static/img/robot_idle.png" alt="">
+    <h1>몇 번 테이블인가요?</h1>
+    <p>번호를 누르면 메뉴가 나와요</p>
+    <div class="tgrid" id="tgrid"></div>
+  </section>
+
+  <!-- 내 주문 -->
+  <section class="card mine" id="mine" hidden aria-live="polite"></section>
+
+  <!-- 메뉴 -->
+  <div class="mh" id="mh" hidden>메뉴</div>
+  <section class="menu" id="menu" hidden></section>
+  <div class="foot" id="foot" hidden>주문하면 주방에서 준비한 뒤 로봇이 가져다 드려요</div>
+</main>
+
+<div class="bar" id="bar" hidden><button class="pay" id="pay" type="button" disabled><span>메뉴를 담아 주세요</span><small></small></button></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var $=function(id){ return document.getElementById(id); };
+  var table='', cart={}, menu=[], tables=['1','2','3','4','5','6'], D=null, toastT=0, menuDrawn=false;
+  // 주소에 ?t=3 이 있으면 그 테이블 (QR 로 붙일 때) · 아니면 지난번 고른 번호
+  try{ table=new URLSearchParams(location.search).get('t')||localStorage.getItem('sbTable')||''; }catch(e){}
+
+  function won(n){ return n.toLocaleString('ko-KR')+'원'; }
+  function toast(msg,bad){ var t=$('toast'); t.textContent=msg; t.className='toast on'+(bad?' bad':''); clearTimeout(toastT); toastT=setTimeout(function(){ t.className='toast'; },2600); }
+  function post(url,body){
+    return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){ return r.json(); }).then(function(j){ toast(j.msg||'',!j.ok); return j; })
+      .catch(function(){ toast('서버에 닿지 않아요',true); return {ok:false}; });
+  }
+  function mk(tag,cls,txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+
+  // ── 테이블 번호 ──
+  function setTable(t){ table=t; cart={}; try{ localStorage.setItem('sbTable',t); }catch(e){} show(); poll(); }
+  function drawTables(){ var g=$('tgrid'); g.textContent=''; tables.forEach(function(t){ var b=mk('button','',t); b.type='button'; b.setAttribute('aria-label','테이블 '+t); b.addEventListener('click',function(){ setTable(t); }); g.appendChild(b); }); }
+  function show(){
+    var ok=tables.indexOf(table)>=0;
+    $('ask').hidden=ok; $('mh').hidden=$('menu').hidden=$('foot').hidden=$('bar').hidden=!ok;
+    $('tbtn').hidden=!ok; $('tbtn').textContent='테이블 '+table+'번 · 바꾸기';
+    if(!ok) $('mine').hidden=true;
+    paintCart();
+  }
+  $('tbtn').addEventListener('click',function(){ table=''; cart={}; show(); });
+
+  // ── 메뉴 · 담기 ──
+  function drawMenu(){
+    var box=$('menu'); box.textContent='';
+    menu.forEach(function(m){
+      var c=mk('article','card it'); c.dataset.id=m.id;
+      var img=mk('img'); img.src='/static/img/menu_'+m.id+'.png'; img.alt='';
+      var q=mk('div','qty'), minus=mk('button','','−'), n=mk('i','','0'), plus=mk('button','','+');
+      minus.type=plus.type='button'; minus.setAttribute('aria-label',m.name+' 빼기'); plus.setAttribute('aria-label',m.name+' 담기');
+      minus.addEventListener('click',function(){ cart[m.id]=Math.max(0,(cart[m.id]||0)-1); paintCart(); });
+      plus.addEventListener('click',function(){ cart[m.id]=Math.min(9,(cart[m.id]||0)+1); paintCart(); });
+      q.appendChild(minus); q.appendChild(n); q.appendChild(plus);
+      c.appendChild(img); c.appendChild(mk('b','',m.name)); c.appendChild(mk('span','',won(m.price))); c.appendChild(q);
+      box.appendChild(c);
+    });
+    menuDrawn=true; paintCart();
+  }
+  function paintCart(){
+    var cnt=0,sum=0;
+    menu.forEach(function(m){ var n=cart[m.id]||0; cnt+=n; sum+=n*m.price;
+      var c=document.querySelector('.it[data-id="'+m.id+'"]'); if(!c) return;
+      c.classList.toggle('in',n>0); c.querySelector('.qty i').textContent=n; c.querySelector('.qty button').disabled=n===0; });
+    var pay=$('pay'); pay.disabled=!cnt;
+    pay.firstElementChild.textContent=cnt?'주문하기':'메뉴를 담아 주세요';
+    pay.lastElementChild.textContent=cnt?cnt+'개 · '+won(sum):'';
+  }
+  $('pay').addEventListener('click',function(){
+    post('/api/menu-order',{table:table,cart:cart}).then(function(j){ if(j.ok){ cart={}; paintCart(); poll(); window.scrollTo({top:0,behavior:'smooth'}); } });
+  });
+
+  // ── 내 주문 상태 ──
+  function paintMine(){
+    var box=$('mine'), list=(D.orders||[]).slice().reverse(), robot=D.robot||{}; box.textContent='';
+    box.hidden=!list.length||tables.indexOf(table)<0;
+    list.forEach(function(o){
+      var what=o.lines.map(function(x){ return x.name+' '+x.qty; }).join(' · ');
+      if(o.state==='done'){ box.appendChild(mk('div','old','✓ '+o.t+' 주문 받음 — '+what)); return; }
+      var step, cls, tag, title, face;
+      if(o.state==='waiting'){ step=2; cls=''; tag='준비 중'; title='주방에서 준비하고 있어요'; face='idle'; }
+      else if(o.state==='sent'){ step=3; cls='moving'; tag='배달 중'; face='moving';
+        title=(robot.state==='moving'&&robot.target===table)?'로봇이 오고 있어요':'로봇이 출발했어요 · 다른 테이블을 먼저 들러요'; }
+      else { step=4; cls='arrived'; tag='도착'; title='도착했어요! 음식을 내려 주세요'; face='arrived'; }
+      var od=mk('div','od '+cls), h=mk('div','odh'), img=mk('img'), tx=mk('div');
+      img.src='/static/img/robot_'+face+'.png'; img.alt='';
+      tx.appendChild(mk('span','tag',tag)); tx.appendChild(mk('h2','',title)); tx.appendChild(mk('p','what',o.t+' 주문 · '+what+' · '+won(o.total)));
+      h.appendChild(img); h.appendChild(tx); od.appendChild(h);
+      var d=mk('div','dots'); ['주문 접수','준비 중','배달 중','도착'].forEach(function(s,i){ d.appendChild(mk('span',i<step?'on':'',s)); }); od.appendChild(d);
+      if(o.state==='arrived'){ var b=mk('button','got','받았어요'); b.type='button'; b.addEventListener('click',function(){ post('/api/received',{id:o.id}).then(poll); }); od.appendChild(b); }
+      box.appendChild(od);
+    });
+  }
+
+  // ── 1초마다 서버에 물어보기 ──
+  function poll(){
+    return fetch('/api/my?table='+encodeURIComponent(table),{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(j){
+      D=j;
+      if(j.tables&&j.tables.join()!==tables.join()){ tables=j.tables; drawTables(); show(); }
+      if(!menuDrawn&&j.menu&&j.menu.length){ menu=j.menu; drawMenu(); }
+      paintMine();
+    }).catch(function(){});
+  }
+  drawTables(); show(); poll(); setInterval(poll,1000);
+})();
+</script>
+</body>
+</html>
